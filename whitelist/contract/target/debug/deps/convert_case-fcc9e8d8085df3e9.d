@@ -1,0 +1,9 @@
+/Users/hoangtho/Documents/GitHub/demo_near_ncdl1/whitelist/contract/target/debug/deps/convert_case-fcc9e8d8085df3e9.rmeta: /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/lib.rs /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/case.rs /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/words.rs
+
+/Users/hoangtho/Documents/GitHub/demo_near_ncdl1/whitelist/contract/target/debug/deps/libconvert_case-fcc9e8d8085df3e9.rlib: /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/lib.rs /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/case.rs /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/words.rs
+
+/Users/hoangtho/Documents/GitHub/demo_near_ncdl1/whitelist/contract/target/debug/deps/convert_case-fcc9e8d8085df3e9.d: /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/lib.rs /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/case.rs /Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/words.rs
+
+/Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/lib.rs:
+/Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/case.rs:
+/Users/hoangtho/.cargo/registry/src/github.com-1ecc6299db9ec823/convert_case-0.4.0/src/words.rs:
