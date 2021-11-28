@@ -93,10 +93,10 @@ impl Default for WhitelistSale {
 #[near_bindgen]
 impl WhitelistSale {
     // Add account to whitelist 
-    pub fn add_whitelist(&mut self, accounts: &[AccountId]){
-        for account in accounts {
-            if !self.is_whitelisted(account.into()) {
-                self.whitelist_accounts.insert(account);
+    pub fn add_whitelist(&mut self, accounts: Vec<AccountId>){
+        for account in accounts.iter() {
+            if !self.is_whitelisted(account.to_string()) {
+                self.whitelist_accounts.insert(&account);
             }
         }
     }
@@ -273,14 +273,14 @@ mod tests {
         .signer_account_id("bob_near".to_string())
         .finish());
         let mut contract = WhitelistSale::default();
-        let accs = &["thohd.testnet".to_string(), "alice.thohd.testnet".to_string()];
+        let accs = vec!["thohd.testnet".to_string(), "alice.thohd.testnet".to_string()];
         contract.add_whitelist(accs);
-        for acc in accs {
+        let accs1 = vec!["thohd.testnet".to_string(), "alice.thohd.testnet".to_string()];
+        for acc in accs1.iter() {
             assert!(
-                contract.whitelist_accounts.contains(acc)
+                contract.whitelist_accounts.contains(&acc)
             );
         }
-
     }
     #[test]
     #[should_panic]
@@ -290,7 +290,7 @@ mod tests {
         .signer_account_id("bob_near".to_string())
         .finish());
         let mut contract = WhitelistSale::default();
-        contract.add_whitelist(&["thohd.testnet".to_string()]);
+        contract.add_whitelist(vec!["thohd.testnet".to_string()]);
         assert!(
             contract.is_whitelisted("tim.thohd.testnet".to_string())
         );
@@ -303,7 +303,7 @@ mod tests {
         .signer_account_id("bob_near".to_string())
         .finish());
         let mut contract = WhitelistSale::default();
-        contract.add_whitelist(&[env::signer_account_id()]);    // remove panic
+        contract.add_whitelist(vec![env::signer_account_id()]);    // remove panic
         let deposit = 10*YOCTO; // panic 11 NEAR 
         testing_env!(VMContextBuilder::new()
         .current_account_id("alice_near".to_string())
@@ -324,7 +324,7 @@ mod tests {
         .signer_account_id("bob_near".to_string())
         .finish());
         let mut contract = WhitelistSale::default();
-        contract.add_whitelist(&[env::signer_account_id()]);    // remove panic
+        contract.add_whitelist(vec![env::signer_account_id()]);    // remove panic
         let deposit = 10*YOCTO; // panic 11 NEAR 
         testing_env!(VMContextBuilder::new()
         .current_account_id("alice_near".to_string())
