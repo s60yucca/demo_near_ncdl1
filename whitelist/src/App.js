@@ -6,11 +6,13 @@ import './global.css'
 import getConfig from './config'
 const { networkId } = getConfig(process.env.NODE_ENV || 'development')
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
-
+const decimal = 8
 export default function App() {
   // use React Hooks to store greeting in component state
   const [is_whitelisted, set_whitelisted_state] = React.useState(0)
   const [tge_time, set_tge_time] = React.useState(0)
+  const [pool_amount, set_pool_amount] = React.useState(0)
+  const [total_bought, set_total_bought] = React.useState(0)
 
   // when the user has not yet interacted with the form, disable the button
   const [buttonDisabled, setButtonDisabled] = React.useState(true)
@@ -34,8 +36,19 @@ export default function App() {
         })
         window.contract.get_tge_time()
         .then(tge_time_fromContract => {
-          console.log("tge_time_fromContract", tge_time_fromContract)
+          let tge = Date(tge_time_fromContract/1000000).toString()
+          console.log("tge_time_fromContract", tge)
           set_tge_time(tge_time_fromContract)
+        })      
+        window.contract.get_pool_amount()
+        .then(pool_amount_fromContract => {
+          console.log("pool_amount_fromContract", pool_amount_fromContract)
+          set_pool_amount(pool_amount_fromContract)
+        })      
+        window.contract.get_total_bought()
+        .then(total_bought_fromContract => {
+          console.log("total_bought_fromContract", total_bought_fromContract)
+          set_total_bought(total_bought_fromContract)
         })      
       }
     },
@@ -91,8 +104,10 @@ export default function App() {
           {' '/* React trims whitespace around tags; insert literal space character when needed */}
           {window.accountId}!<br/>
           <label>Whitelist Sale Contract</label><br/>
-          <label>TGE Time: {tge_time}</label><br/>
-          <label>Is Whitelisted: {is_whitelisted}</label>
+          <label>TGE Time: {new Date(tge_time/1000000).toString()}</label><br/>
+          <label>Is Whitelisted: {is_whitelisted}</label><br/>
+          <label>Pool: {pool_amount/10**decimal}</label><br/>
+          <label>Filled: {total_bought} ({total_bought*100/pool_amount}%)</label>
         </h1>
         <form onSubmit={async event => {
           event.preventDefault()
@@ -145,7 +160,7 @@ export default function App() {
                 marginBottom: '0.5em'
               }}
             >
-              Change greeting
+              Add Whitelist Account
             </label>
             <div style={{ display: 'flex' }}>
               <input

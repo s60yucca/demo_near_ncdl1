@@ -92,11 +92,22 @@ impl Default for WhitelistSale {
 
 #[near_bindgen]
 impl WhitelistSale {
+    // get unlock deposit status 
     pub fn is_unlock_deposit(&self) -> bool{
         self.unlock_deposit
     }
+    // get tge time
     pub fn get_tge_time(&self) -> Timestamp {
         self.tge_time
+    }
+    // get pool_amount
+    pub fn get_pool_amount(&self) -> Balance {
+        self.pool_amount
+    }
+    
+    // get total bought
+    pub fn get_total_bought(&self) -> Balance {
+        self.total_bought
     }
     // Add account to whitelist 
     pub fn add_whitelist(&mut self, accounts: Vec<AccountId>){
