@@ -24,8 +24,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const YOCTO: Balance = 1_000_000_000_000_000_000_000_000;
 const TOKEN_DECIMAL: Balance = 100_000_000;
-const SECONDS_IN_DAY: Timestamp = 86400000;
-
+const NANOSECONDS_IN_DAY: Timestamp = 86400_000_000_000; //nanoseconds
+const TGE_IN_NANO: Timestamp = 1638489600_000_000_000; // 2021_12_03
 /// Raw type for timestamp in nanoseconds
 pub type Timestamp = u64;
 
@@ -85,13 +85,19 @@ impl Default for WhitelistSale {
         whitelist: LookupMap::new(b"l".to_vec()),
         whitelist_accounts: LookupSet::new(b"w".to_vec()),
         unlock_deposit: false,
-        tge_time: SystemTime::now().duration_since(UNIX_EPOCH).expect("time backward").as_secs()+SECONDS_IN_DAY,
+        tge_time: TGE_IN_NANO,
     }
   }
 }
 
 #[near_bindgen]
 impl WhitelistSale {
+    pub fn is_unlock_deposit(&self) -> bool{
+        self.unlock_deposit
+    }
+    pub fn get_tge_time(&self) -> Timestamp {
+        self.tge_time
+    }
     // Add account to whitelist 
     pub fn add_whitelist(&mut self, accounts: Vec<AccountId>){
         for account in accounts.iter() {
@@ -161,7 +167,7 @@ impl WhitelistSale {
         let delta = now - self.tge_time;
         assert! (delta > 0, 
                 "Not claim time.");
-        let month = delta/(SECONDS_IN_DAY*30);
+        let month = delta/(NANOSECONDS_IN_DAY*30);
         let mut claimable = wl_info.total_claimable*(self.tge_unlock as u128)/100;
         if month > self.cliff {
             claimable += wl_info.total_claimable*(((month - self.cliff) * self.vesting) as u128)/100;

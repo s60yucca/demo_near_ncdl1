@@ -5,10 +5,12 @@ import './global.css'
 
 import getConfig from './config'
 const { networkId } = getConfig(process.env.NODE_ENV || 'development')
+const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 
 export default function App() {
   // use React Hooks to store greeting in component state
-  const [greeting, set_greeting] = React.useState()
+  const [is_whitelisted, set_whitelisted_state] = React.useState(0)
+  const [tge_time, set_tge_time] = React.useState(0)
 
   // when the user has not yet interacted with the form, disable the button
   const [buttonDisabled, setButtonDisabled] = React.useState(true)
@@ -24,10 +26,17 @@ export default function App() {
       if (window.walletConnection.isSignedIn()) {
 
         // window.contract is set by initContract in index.js
-        window.contract.get_greeting({ account_id: window.accountId })
-          .then(greetingFromContract => {
-            set_greeting(greetingFromContract)
-          })
+
+        window.contract.is_whitelisted({ account_id: window.accountId })
+          .then(is_whitelistedFromContract => {
+            console.log("is_whitelistedFromContract", is_whitelistedFromContract)
+            set_whitelisted_state(is_whitelistedFromContract ? 1 : 0)
+        })
+        window.contract.get_tge_time()
+        .then(tge_time_fromContract => {
+          console.log("tge_time_fromContract", tge_time_fromContract)
+          set_tge_time(tge_time_fromContract)
+        })      
       }
     },
 
@@ -77,10 +86,13 @@ export default function App() {
               borderBottom: '2px solid var(--secondary)'
             }}
           >
-            {greeting}
+            {nearConfig.contractName}
           </label>
           {' '/* React trims whitespace around tags; insert literal space character when needed */}
-          {window.accountId}!
+          {window.accountId}!<br/>
+          <label>Whitelist Sale Contract</label><br/>
+          <label>TGE Time: {tge_time}</label><br/>
+          <label>Is Whitelisted: {is_whitelisted}</label>
         </h1>
         <form onSubmit={async event => {
           event.preventDefault()
@@ -138,7 +150,7 @@ export default function App() {
             <div style={{ display: 'flex' }}>
               <input
                 autoComplete="off"
-                defaultValue={greeting}
+                defaultValue={is_whitelisted}
                 id="greeting"
                 onChange={e => setButtonDisabled(e.target.value === greeting)}
                 style={{ flex: 1 }}
