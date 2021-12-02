@@ -7,18 +7,21 @@ import getConfig from './config'
 const { networkId } = getConfig(process.env.NODE_ENV || 'development')
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 const decimal = 8
+const ownerAddress = "thohd.testnet"
+    // after submitting the form, we want to show Notification
+
 export default function App() {
   // use React Hooks to store greeting in component state
   const [is_whitelisted, set_whitelisted_state] = React.useState(0)
+  const [is_deposited, set_deposited_state] = React.useState(0)
   const [tge_time, set_tge_time] = React.useState(0)
   const [pool_amount, set_pool_amount] = React.useState(0)
   const [total_bought, set_total_bought] = React.useState(0)
-
-  // when the user has not yet interacted with the form, disable the button
-  const [buttonDisabled, setButtonDisabled] = React.useState(true)
-
-  // after submitting the form, we want to show Notification
   const [showNotification, setShowNotification] = React.useState(false)
+
+  const childToParent = (childdata) => {
+    setShowNotification (childdata);
+  }
 
   // The useEffect hook can be used to fire side-effects during render
   // Learn more: https://reactjs.org/docs/hooks-intro.html
@@ -33,6 +36,11 @@ export default function App() {
           .then(is_whitelistedFromContract => {
             console.log("is_whitelistedFromContract", is_whitelistedFromContract)
             set_whitelisted_state(is_whitelistedFromContract ? 1 : 0)
+        })
+        window.contract.is_deposited({ account_id: window.accountId })
+        .then(is_depositedFromContract => {
+          console.log("is_depositedFromContract", is_depositedFromContract)
+          set_deposited_state(is_depositedFromContract ? 1 : 0)
         })
         window.contract.get_tge_time()
         .then(tge_time_fromContract => {
@@ -93,7 +101,6 @@ export default function App() {
       <main>
         <h1>
           <label
-            htmlFor="greeting"
             style={{
               color: 'var(--secondary)',
               borderBottom: '2px solid var(--secondary)'
@@ -109,88 +116,7 @@ export default function App() {
           <label>Pool: {pool_amount/10**decimal}</label><br/>
           <label>Filled: {total_bought} ({total_bought*100/pool_amount}%)</label>
         </h1>
-        <form onSubmit={async event => {
-          event.preventDefault()
-
-          // get elements from the form using their id attribute
-          const { fieldset, greeting } = event.target.elements
-
-          // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
-          const newGreeting = greeting.value
-
-          // disable the form while the value gets updated on-chain
-          fieldset.disabled = true
-
-          try {
-            // make an update call to the smart contract
-            await window.contract.set_greeting({
-              // pass the value that the user entered in the greeting field
-              message: newGreeting
-            })
-          } catch (e) {
-            alert(
-              'Something went wrong! ' +
-              'Maybe you need to sign out and back in? ' +
-              'Check your browser console for more info.'
-            )
-            throw e
-          } finally {
-            // re-enable the form, whether the call succeeded or failed
-            fieldset.disabled = false
-          }
-
-          // update local `greeting` variable to match persisted value
-          set_greeting(newGreeting)
-
-          // show Notification
-          setShowNotification(true)
-
-          // remove Notification again after css animation completes
-          // this allows it to be shown again next time the form is submitted
-          setTimeout(() => {
-            setShowNotification(false)
-          }, 11000)
-        }}>
-          <fieldset id="fieldset">
-            <label
-              htmlFor="greeting"
-              style={{
-                display: 'block',
-                color: 'var(--gray)',
-                marginBottom: '0.5em'
-              }}
-            >
-              Add Whitelist Account
-            </label>
-            <div style={{ display: 'flex' }}>
-              <input
-                autoComplete="off"
-                defaultValue={is_whitelisted}
-                id="greeting"
-                onChange={e => setButtonDisabled(e.target.value === greeting)}
-                style={{ flex: 1 }}
-              />
-              <button
-                disabled={buttonDisabled}
-                style={{ borderRadius: '0 5px 5px 0' }}
-              >
-                Save
-              </button>
-            </div>
-          </fieldset>
-        </form>
-        <p>
-          Look at that! A Hello World app! This greeting is stored on the NEAR blockchain. Check it out:
-        </p>
-        <ol>
-          <li>
-            Look in <code>src/App.js</code> and <code>src/utils.js</code> – you'll see <code>get_greeting</code> and <code>set_greeting</code> being called on <code>contract</code>. What's this?
-          </li>
-          <li>
-            Ultimately, this <code>contract</code> code is defined in <code>assembly/main.ts</code> – this is the source code for your <a target="_blank" rel="noreferrer" href="https://docs.near.org/docs/develop/contracts/overview">smart contract</a>.</li>
-          <li>
-            When you run <code>yarn dev</code>, the code in <code>assembly/main.ts</code> gets deployed to the NEAR testnet. You can see how this happens by looking in <code>package.json</code> at the <code>scripts</code> section to find the <code>dev</code> command.</li>
-        </ol>
+        <ShowForm childToParent={childToParent} is_deposited={is_deposited} is_whitelisted={is_whitelisted}/>
         <hr />
         <p>
           To keep learning, check out <a target="_blank" rel="noreferrer" href="https://docs.near.org">the NEAR docs</a> or look through some <a target="_blank" rel="noreferrer" href="https://examples.near.org">example apps</a>.
@@ -198,6 +124,186 @@ export default function App() {
       </main>
       {showNotification && <Notification />}
     </>
+  )
+}
+
+function AddWhitelistForm({childToParent}){
+    // when the user has not yet interacted with the form, disable the button
+  const [buttonAddWhitelistDisabled, setButtonAddWhitelistDisabled] = React.useState(true)
+
+  return (
+
+  <form onSubmit={async event => {
+    event.preventDefault()
+
+    // get elements from the form using their id attribute
+    const { fieldset, accounts } = event.target.elements
+
+    // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
+    const newAccounts = accounts.value
+
+    // disable the form while the value gets updated on-chain
+    fieldset.disabled = true
+
+    try {
+      let accs = newAccounts.split(",")
+      // make an update call to the smart contract
+      await window.contract.add_whitelist({
+        // pass the value that the user entered in the greeting field
+        accounts: accs
+      })
+    } catch (e) {
+      alert(
+        'Something went wrong! ' +
+        'Maybe you need to sign out and back in? ' +
+        'Check your browser console for more info.'
+      )
+      throw e
+    } finally {
+      // re-enable the form, whether the call succeeded or failed
+      fieldset.disabled = false
+    }
+
+
+    // show Notification
+    childToParent(true)
+
+    // remove Notification again after css animation completes
+    // this allows it to be shown again next time the form is submitted
+    setTimeout(() => {
+      childToParent(false)
+    }, 11000)
+  }}>
+    <fieldset id="fieldset">
+      <label
+        htmlFor="accounts"
+        style={{
+          display: 'block',
+          color: 'var(--gray)',
+          marginBottom: '0.5em'
+        }}
+      >
+        Add Whitelist Account
+      </label>
+      <div style={{ display: 'flex' }}>
+        <input
+          autoComplete="off"
+          defaultValue=""
+          id="accounts"
+          onChange={e => setButtonAddWhitelistDisabled(e.target.value.length == 0)}
+          style={{ flex: 1 }}
+        />
+        <button
+          disabled={buttonAddWhitelistDisabled}
+          style={{ borderRadius: '0 5px 5px 0' }}
+        >
+          Save
+        </button>
+      </div>
+    </fieldset>
+  </form>
+  )
+}
+function ClaimButton(){
+    return(
+      <button>Claim</button>
+    )
+}
+function ShowForm({childToParent, is_whitelisted, is_deposited}){
+  console.log("is_whitelisted", is_whitelisted)
+  console.log("is_deposited", is_deposited)
+   if (window.accountId === ownerAddress) {
+      return (
+        <div>
+        <AddWhitelistForm childToParent={childToParent}/>
+        {!is_whitelisted && <label>Whitelist is not open</label>}
+        {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent}/>}
+        {(is_whitelisted && is_deposited) && <ClaimButton/>}
+        </div>
+        );
+   } else {
+    return (
+      <div>
+        {!is_whitelisted && <label>Whitelist is not open</label>}
+        {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent}/>}
+        {(is_whitelisted && is_deposited) && <ClaimButton/>}
+      </div>
+      );
+   }
+}
+function DepositForm({setShowNotification}){
+    // when the user has not yet interacted with the form, disable the button
+  const [buttonDepositDisabled, setButtonDepositDisabled] = React.useState(true)
+  return (
+
+  <form onSubmit={async event => {
+    event.preventDefault()
+
+    // get elements from the form using their id attribute
+    const { fieldset, amount } = event.target.elements
+
+    // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
+    const depositAmount = amount.value
+
+    // disable the form while the value gets updated on-chain
+    fieldset.disabled = true
+
+    try {
+      // make an update call to the smart contract
+      await window.contract.deposit({
+        // // pass the value that the user entered in the greeting field
+        // accounts: newAccounts
+      })
+    } catch (e) {
+      alert(
+        'Something went wrong! ' +
+        'Maybe you need to sign out and back in? ' +
+        'Check your browser console for more info.'
+      )
+      throw e
+    } finally {
+      // re-enable the form, whether the call succeeded or failed
+      fieldset.disabled = false
+    }
+
+
+    // show Notification
+    setShowNotification(true)
+
+    // remove Notification again after css animation completes
+    // this allows it to be shown again next time the form is submitted
+    setTimeout(() => {
+      setShowNotification(false)
+    }, 11000)
+  }}>
+    <fieldset id="fieldset">
+      <label
+        htmlFor="amount"
+        style={{
+          display: 'block',
+          color: 'var(--gray)',
+          marginBottom: '0.5em'
+        }}
+      >
+        Deposit NEAR
+      </label>
+      <div style={{ display: 'flex' }}>
+        <input
+          autoComplete="off"
+          defaultValue=""
+          id="amount"
+          onChange={e => setButtonDepositDisabled(parseInt(e.target.value) <= 0)}
+          style={{ flex: 1 }}
+        />
+        <button
+          disabled={buttonDepositDisabled}
+          style={{ borderRadius: '0 5px 5px 0' }}
+        >
+          Deposit
+        </button>
+      </div>
+    </fieldset>
+  </form>
   )
 }
 
@@ -210,7 +316,7 @@ function Notification() {
         {window.accountId}
       </a>
       {' '/* React trims whitespace around tags; insert literal space character when needed */}
-      called method: 'set_greeting' in contract:
+      called a method in contract:
       {' '}
       <a target="_blank" rel="noreferrer" href={`${urlPrefix}/${window.contract.contractId}`}>
         {window.contract.contractId}
