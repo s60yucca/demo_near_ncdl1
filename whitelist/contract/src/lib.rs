@@ -93,6 +93,10 @@ impl Default for WhitelistSale {
 #[near_bindgen]
 impl WhitelistSale {
     // get unlock deposit status 
+    pub fn get_max_deposit(&self) -> Balance{
+        self.max_deposit
+    }
+    // get unlock deposit status 
     pub fn is_unlock_deposit(&self) -> bool{
         self.unlock_deposit
     }

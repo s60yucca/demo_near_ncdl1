@@ -9,7 +9,7 @@ const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 const decimal = 8
 const ownerAddress = "thohd.testnet"
     // after submitting the form, we want to show Notification
-
+const GAS_DEFAULT = 100000000000000
 export default function App() {
   // use React Hooks to store greeting in component state
   const [is_whitelisted, set_whitelisted_state] = React.useState(0)
@@ -17,6 +17,7 @@ export default function App() {
   const [tge_time, set_tge_time] = React.useState(0)
   const [pool_amount, set_pool_amount] = React.useState(0)
   const [total_bought, set_total_bought] = React.useState(0)
+  const [max_deposit, set_max_deposit] = React.useState(0)
   const [showNotification, setShowNotification] = React.useState(false)
 
   const childToParent = (childdata) => {
@@ -52,6 +53,11 @@ export default function App() {
         .then(pool_amount_fromContract => {
           console.log("pool_amount_fromContract", pool_amount_fromContract)
           set_pool_amount(pool_amount_fromContract)
+        })      
+        window.contract.get_max_deposit()
+        .then(max_deposit_fromContract => {
+          console.log("max_deposit_fromContract", max_deposit_fromContract)
+          set_max_deposit(Math.round(max_deposit_fromContract/10**24))
         })      
         window.contract.get_total_bought()
         .then(total_bought_fromContract => {
@@ -116,7 +122,7 @@ export default function App() {
           <label>Pool: {pool_amount/10**decimal}</label><br/>
           <label>Filled: {total_bought} ({total_bought*100/pool_amount}%)</label>
         </h1>
-        <ShowForm childToParent={childToParent} is_deposited={is_deposited} is_whitelisted={is_whitelisted}/>
+        <ShowForm childToParent={childToParent} is_deposited={is_deposited} is_whitelisted={is_whitelisted} max_deposit={max_deposit}/>
         <hr />
         <p>
           To keep learning, check out <a target="_blank" rel="noreferrer" href="https://docs.near.org">the NEAR docs</a> or look through some <a target="_blank" rel="noreferrer" href="https://examples.near.org">example apps</a>.
@@ -209,32 +215,23 @@ function ClaimButton(){
       <button>Claim</button>
     )
 }
-function ShowForm({childToParent, is_whitelisted, is_deposited}){
+function ShowForm({childToParent, is_whitelisted, is_deposited, max_deposit}){
   console.log("is_whitelisted", is_whitelisted)
   console.log("is_deposited", is_deposited)
-   if (window.accountId === ownerAddress) {
       return (
         <div>
-        <AddWhitelistForm childToParent={childToParent}/>
+        {window.accountId === ownerAddress &&<AddWhitelistForm childToParent={childToParent}/>}
         {!is_whitelisted && <label>Whitelist is not open</label>}
-        {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent}/>}
+        {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent} max_deposit={max_deposit}/>}
         {(is_whitelisted && is_deposited) && <ClaimButton/>}
         </div>
         );
-   } else {
-    return (
-      <div>
-        {!is_whitelisted && <label>Whitelist is not open</label>}
-        {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent}/>}
-        {(is_whitelisted && is_deposited) && <ClaimButton/>}
-      </div>
-      );
-   }
 }
-function DepositForm({setShowNotification}){
+function DepositForm({setShowNotification, max_deposit}){
     // when the user has not yet interacted with the form, disable the button
-  const [buttonDepositDisabled, setButtonDepositDisabled] = React.useState(true)
-  return (
+    const [buttonDepositDisabled, setButtonDepositDisabled] = React.useState(true)
+    const [errorText, setErrorText] = React.useState("")
+    return (
 
   <form onSubmit={async event => {
     event.preventDefault()
@@ -249,11 +246,13 @@ function DepositForm({setShowNotification}){
     fieldset.disabled = true
 
     try {
+      let DEPOSIT_AMOUNT = depositAmount * 10**24 + GAS_DEFAULT
+      console.log("deposit", DEPOSIT_AMOUNT)
       // make an update call to the smart contract
       await window.contract.deposit({
         // // pass the value that the user entered in the greeting field
         // accounts: newAccounts
-      })
+      }, GAS_DEFAULT, DEPOSIT_AMOUNT)
     } catch (e) {
       alert(
         'Something went wrong! ' +
@@ -285,14 +284,30 @@ function DepositForm({setShowNotification}){
           marginBottom: '0.5em'
         }}
       >
-        Deposit NEAR
+        Deposit NEAR (Max:{max_deposit}NEAR)
       </label>
       <div style={{ display: 'flex' }}>
         <input
+          type = "text"
           autoComplete="off"
           defaultValue=""
           id="amount"
-          onChange={e => setButtonDepositDisabled(parseInt(e.target.value) <= 0)}
+          onKeyPress={(event) => {
+            if (!/[0-9]/.test(event.key)) {
+              event.preventDefault();
+            }
+          }}
+    
+          onChange={e => {
+            let v = parseInt(e.target.value)
+            setButtonDepositDisabled(v <= 0 || v>10)
+            // if (v < 0 || v > 10) {
+            //   setErrorText("Maximum deposit is 10 Near")
+            // } else {
+            //   setErrorText("")
+            // }
+          }
+          }
           style={{ flex: 1 }}
         />
         <button
