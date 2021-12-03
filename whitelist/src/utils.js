@@ -21,7 +21,8 @@ export async function initContract() {
     viewMethods: ['is_whitelisted', "is_unlock_deposit", "is_deposited", "get_tge_time", "get_pool_amount", "get_total_bought",
                 'get_max_deposit'],
     // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: ['add_whitelist', 'deposit'],
+    changeMethods: ['add_whitelist', 'deposit', "unlock_deposit_now"],
+    sender: window.accountId,
   })
 }
 

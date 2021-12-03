@@ -137,7 +137,13 @@ impl WhitelistSale {
         );
         self.whitelist.contains_key(&account_id)
     }
+    // unlock deposit into the contract
+    pub fn unlock_deposit_now(&mut self) {
+        assert!(!self.unlock_deposit, "Already Unlock");
+        self.unlock_deposit = true;
+    }
     /// deposit to contract 
+    #[payable]
     pub fn deposit(&mut self){
         assert!(
             self.is_whitelisted(env::signer_account_id()),
@@ -148,7 +154,7 @@ impl WhitelistSale {
             "You can deposit only one time."
         );
         assert!(
-            env::attached_deposit() - self.max_deposit <= 0,
+            env::attached_deposit() <= self.max_deposit ,
             "Max deposit is {}", self.max_deposit
         );
         assert! (
