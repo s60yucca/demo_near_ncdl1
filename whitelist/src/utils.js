@@ -19,9 +19,9 @@ export async function initContract() {
   window.contract = await new Contract(window.walletConnection.account(), nearConfig.contractName, {
     // View methods are read only. They don't modify the state, but usually return some value.
     viewMethods: ['is_whitelisted', "is_unlock_deposit", "is_deposited", "get_tge_time", "get_pool_amount", "get_total_bought",
-                'get_max_deposit'],
+                'get_max_deposit', "get_claimable_amount"],
     // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: ['add_whitelist', 'deposit', "unlock_deposit_now"],
+    changeMethods: ['add_whitelist', 'deposit', "unlock_deposit_now", "claim_token"],
     sender: window.accountId,
   })
 }

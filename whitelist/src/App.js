@@ -9,7 +9,7 @@ import getConfig from './config'
 const { networkId } = getConfig(process.env.NODE_ENV || 'development')
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 const decimal = 8
-const ownerAddress = "thohd.testnet"
+const operatorAddress = "whitelist.testnet"
     // after submitting the form, we want to show Notification
 const GAS_DEFAULT = 300000000000000
 export default function App() {
@@ -21,6 +21,7 @@ export default function App() {
   const [pool_amount, set_pool_amount] = React.useState(0)
   const [total_bought, set_total_bought] = React.useState(0)
   const [max_deposit, set_max_deposit] = React.useState(0)
+  const [claimable, set_claimable] = React.useState(0)
   const [showNotification, setShowNotification] = React.useState(false)
 
   const childToParent = (childdata) => {
@@ -71,6 +72,11 @@ export default function App() {
         .then(total_bought_fromContract => {
           console.log("total_bought_fromContract", total_bought_fromContract)
           set_total_bought(total_bought_fromContract)
+        })    
+        window.contract.get_claimable_amount({ account_id: window.accountId })
+        .then(claimable_amount_fromContract => {
+          console.log("claimable_amount_fromContract", claimable_amount_fromContract)
+          set_claimable(claimable_amount_fromContract)
         })      
       }
     },
@@ -128,7 +134,8 @@ export default function App() {
           <label>TGE Time: {new Date(tge_time/1000000).toString()}</label><br/>
           <label>Is Whitelisted: {is_whitelisted}</label><br/>
           <label>Pool: {pool_amount/10**decimal}</label><br/>
-          <label>Filled: {total_bought/10**decimal} ({total_bought*100/pool_amount}%)</label>
+          <label>Filled: {total_bought/10**decimal} ({total_bought*100/pool_amount}%)</label><br/>
+          <label>Claimable: {claimable} </label>
         </h1>
         <ShowForm childToParent={childToParent} is_deposited={is_deposited}
             is_whitelisted={is_whitelisted}
@@ -223,7 +230,13 @@ function AddWhitelistForm({childToParent}){
 }
 function ClaimButton(){
     return(
-      <button>Claim</button>
+      <button onClick={async event => {
+        event.preventDefault()
+        await window.contract.claim_token({})
+        }
+      }
+      
+      >Claim</button>
     )
 }
 function UnlockDepositButton(){
@@ -239,8 +252,8 @@ function UnlockDepositButton(){
 function ShowForm({childToParent, is_whitelisted, is_deposited, max_deposit, is_unlocked_deposit}){
       return (
         <div>
-        {window.accountId === ownerAddress &&<AddWhitelistForm childToParent={childToParent}/>}
-        {(window.accountId === ownerAddress && !is_unlocked_deposit) &&<UnlockDepositButton/>}
+        {window.accountId === operatorAddress &&<AddWhitelistForm childToParent={childToParent}/>}
+        {(window.accountId === operatorAddress && !is_unlocked_deposit) &&<UnlockDepositButton/>}
         
         {!is_whitelisted && <label>Whitelist is not open</label>}
         {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent} max_deposit={max_deposit}/>}

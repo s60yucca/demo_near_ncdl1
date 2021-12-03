@@ -20,7 +20,7 @@ use near_sdk::{env, near_bindgen, setup_alloc, AccountId, Balance};
 use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{ext_contract};
-use std::time::{SystemTime, UNIX_EPOCH};
+use chrono::prelude::*;
 
 const YOCTO: Balance = 1_000_000_000_000_000_000_000_000;
 const TOKEN_DECIMAL: Balance = 100_000_000;
@@ -174,18 +174,18 @@ impl WhitelistSale {
         self.whitelist.insert(&env::signer_account_id(), &wl_info);
     }
     // return claimable amount of ft token for signer account id
-    pub fn get_claimable_amount(&self) -> Balance {
+    pub fn get_claimable_amount(&self, account_id: AccountId) -> Balance {
         assert!(
-            self.is_whitelisted(env::signer_account_id()),
+            self.is_whitelisted(account_id.clone()),
             "Your account is not whitelisted"
         );
         assert!(
-            self.is_deposited(env::signer_account_id()),
+            self.is_deposited(account_id.clone()),
             "You didn't deposit yet."
         );
-        let wl_info = self.whitelist.get(&env::signer_account_id()).unwrap();
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).expect("time backward").as_secs();
-        let delta = now - self.tge_time;
+        let wl_info = self.whitelist.get(&account_id).unwrap();
+        let now = Utc::now();
+        let delta = now.timestamp_nanos() as u64 - self.tge_time;
         assert! (delta > 0, 
                 "Not claim time.");
         let month = delta/(NANOSECONDS_IN_DAY*30);
@@ -197,8 +197,9 @@ impl WhitelistSale {
         claimable
     }
     // Signer account id claim token after open 
-    pub fn claim_token(&self){
-        let claimable = self.get_claimable_amount();
+    pub fn claim_token(&mut self){
+        let account = env::signer_account_id();
+        let claimable = self.get_claimable_amount(account);
         assert! (claimable > 0, 
             "Nothing to claim.");
         let mut wl_info = self.whitelist.get(&env::signer_account_id()).unwrap();
