@@ -129,6 +129,7 @@ impl WhitelistSale {
         );
         self.whitelist_accounts.contains(&account_id)
     }
+    
     /// Returns `true` if the given account ID already deposited.
     pub fn is_deposited(&self, account_id: AccountId) -> bool {
         assert!(

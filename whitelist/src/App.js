@@ -126,12 +126,12 @@ export default function App() {
               borderBottom: '2px solid var(--secondary)'
             }}
           >
-            {nearConfig.contractName}
+            {/* {nearConfig.contractName} */}
           </label>
           {' '/* React trims whitespace around tags; insert literal space character when needed */}
-          {window.accountId}!<br/>
+          Signed: {window.accountId}!<br/>
           <label>Whitelist Sale Contract</label><br/>
-          <label>TGE Time: {new Date(tge_time/1000000).toString()}</label><br/>
+          <label>TGE Time: {new Date(tge_time/1000000).toLocaleDateString("en-US")}</label><br/>
           <label>Is Whitelisted: {is_whitelisted}</label><br/>
           <label>Pool: {pool_amount/10**decimal}</label><br/>
           <label>Filled: {total_bought/10**decimal} ({total_bought*100/pool_amount}%)</label><br/>
@@ -255,7 +255,7 @@ function ShowForm({childToParent, is_whitelisted, is_deposited, max_deposit, is_
         {window.accountId === operatorAddress &&<AddWhitelistForm childToParent={childToParent}/>}
         {(window.accountId === operatorAddress && !is_unlocked_deposit) &&<UnlockDepositButton/>}
         
-        {!is_whitelisted && <label>Whitelist is not open</label>}
+        {!is_whitelisted && <label><br/>You are not in the whitelist or whitelist</label>}
         {(is_whitelisted && !is_deposited) && <DepositForm childToParent={childToParent} max_deposit={max_deposit}/>}
         {(is_whitelisted && is_deposited) && <ClaimButton/>}
         </div>
