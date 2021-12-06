@@ -20,7 +20,6 @@ use near_sdk::{env, near_bindgen, setup_alloc, AccountId, Balance};
 use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{ext_contract};
-use chrono::prelude::*;
 
 const YOCTO: Balance = 1_000_000_000_000_000_000_000_000;
 const TOKEN_DECIMAL: Balance = 100_000_000;
@@ -129,7 +128,7 @@ impl WhitelistSale {
         );
         self.whitelist_accounts.contains(&account_id)
     }
-    
+
     /// Returns `true` if the given account ID already deposited.
     pub fn is_deposited(&self, account_id: AccountId) -> bool {
         assert!(
@@ -185,8 +184,7 @@ impl WhitelistSale {
             "You didn't deposit yet."
         );
         let wl_info = self.whitelist.get(&account_id).unwrap();
-        let now = Utc::now();
-        let delta = now.timestamp_nanos() as u64 - self.tge_time;
+        let delta = env::block_timestamp() - self.tge_time;
         assert! (delta > 0, 
                 "Not claim time.");
         let month = delta/(NANOSECONDS_IN_DAY*30);

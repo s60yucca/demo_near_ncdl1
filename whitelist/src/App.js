@@ -76,7 +76,7 @@ export default function App() {
         window.contract.get_claimable_amount({ account_id: window.accountId })
         .then(claimable_amount_fromContract => {
           console.log("claimable_amount_fromContract", claimable_amount_fromContract)
-          set_claimable(claimable_amount_fromContract)
+          set_claimable(claimable_amount_fromContract/10**decimal)
         })      
       }
     },
