@@ -1,41 +1,36 @@
-import { connect, Contract, keyStores, WalletConnection } from 'near-api-js'
-import getConfig from './config'
+import { utils, providers } from "near-api-js";
 
-const nearConfig = getConfig(process.env.NODE_ENV || 'development')
+export const formatNearAmount = (amount) => {
+  if (typeof amount === "number") {
+    amount = amount.toLocaleString("fullwide", { useGrouping: false });
+  }
+  const amountFormatted = utils.format.formatNearAmount(amount);
+  return Math.round(Number(amountFormatted) + Number.EPSILON);
+};
 
-// Initialize contract & set global variables
-export async function initContract() {
-  // Initialize connection to the NEAR testnet
-  const near = await connect(Object.assign({ deps: { keyStore: new keyStores.BrowserLocalStorageKeyStore() } }, nearConfig))
+export const formatDepositAmount = (amount) => {
+  if (typeof amount === "number") {
+    amount = amount.toLocaleString("fullwide", { useGrouping: false });
+  }
+  amount = utils.format.formatNearAmount(amount);
+  amount = Math.round((Number(amount) + Number.EPSILON) * 1000) / 1000;
+  return utils.format.parseNearAmount(amount.toString());
+};
 
-  // Initializing Wallet based Account. It can work with NEAR testnet wallet that
-  // is hosted at https://wallet.testnet.near.org
-  window.walletConnection = new WalletConnection(near)
-
-  // Getting the Account ID. If still unauthorized, it's just empty string
-  window.accountId = window.walletConnection.getAccountId()
-
-  // Initializing our contract APIs by contract name and configuration
-  window.contract = await new Contract(window.walletConnection.account(), nearConfig.contractName, {
-    // View methods are read only. They don't modify the state, but usually return some value.
-    viewMethods: ['is_whitelisted', "is_unlock_deposit", "is_deposited", "get_tge_time", "get_pool_amount", "get_total_bought",
-                'get_max_deposit', "get_claimable_amount"],
-    // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: ['add_whitelist', 'deposit', "unlock_deposit_now", "claim_token"],
-    sender: window.accountId,
-  })
-}
-
-export function logout() {
-  window.walletConnection.signOut()
-  // reload page
-  window.location.replace(window.location.origin + window.location.pathname)
-}
-
-export function login() {
-  // Allow the current app to make calls to the specified contract on the
-  // user's behalf.
-  // This works by creating a new access key for the user's account and storing
-  // the private key in localStorage.
-  window.walletConnection.requestSignIn(nearConfig.contractName)
-}
+export const callPublicRpc = async (contractName, method, arg) => {
+  const provider = new providers.JsonRpcProvider(process.env.jsonRpcProvider);
+  const args = Buffer.from(JSON.stringify(arg)).toString("base64");
+  try {
+    const rawResult = await provider.query({
+      request_type: "call_function",
+      account_id: contractName,
+      method_name: method,
+      args_base64: args,
+      finality: "optimistic",
+    });
+    const result = JSON.parse(Buffer.from(rawResult.result).toString());
+    return result;
+  } catch (e) {
+    console.log(e);
+  }
+};

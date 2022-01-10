@@ -1,8 +1,12 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 # Developer note: near.gitignore will be renamed to .gitignore upon project creation
 # dependencies
-/contract/target
+/whitelistfactory/target
+/whitelistfactory/neardev
+/contract/
 /node_modules
+/src/node_modules
+/src/.next
 /.pnp
 .pnp.js
 

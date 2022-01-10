@@ -16,17 +16,14 @@ pub const MIN_BALANCE_FOR_STORAGE: u128 = 3_500_000_000_000_000_000_000_000;
 
 // To conserve gas, efficient serialization is achieved through Borsh (http://borsh.io/)
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{env, near_bindgen, setup_alloc, AccountId, Balance};
+use near_sdk::{env, near_bindgen, setup_alloc, AccountId, Balance, ext_contract, Timestamp, BorshStorageKey, PanicOnDefault};
 use near_sdk::collections::{LookupMap, LookupSet};
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{ext_contract};
 
 const YOCTO: Balance = 1_000_000_000_000_000_000_000_000;
-const TOKEN_DECIMAL: Balance = 100_000_000;
+const TOKEN_DECIMAL: Balance = 1000_000_000;
 const NANOSECONDS_IN_DAY: Timestamp = 86400_000_000_000; //nanoseconds
-const TGE_IN_NANO: Timestamp = 1638489600_000_000_000; // 2021_12_03
-/// Raw type for timestamp in nanoseconds
-pub type Timestamp = u64;
+// const TGE_IN_NANO: Timestamp = 1638489600_000_000_000; // 2021_12_03
 
 setup_alloc!();
 // Structs in Rust are similar to other languages, and may include impl keyword as shown below
@@ -49,69 +46,51 @@ trait FungibleToken {
     fn ft_balance_of(&self, account_id: String) -> String;
 }
 
+
+// Note: the names of the structs are not important when calling the smart contract, but the function names are
+#[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct WhitelistSale {
+    pub owner_id: AccountId,
+    pub whitelist: LookupMap<AccountId, WhitelistInfo>,
+    pub whitelist_accounts: LookupSet<AccountId>,
+    pub metadata: WhitelistSaleMetadata, 
+    pub unlock_deposit: bool,
+    pub total_bought: Balance, // required, total_bought in whitelist sale round
+
+}
 #[ext_contract(ext_self)]
 trait WhitelistSale {
     fn ft_balance_callback(&self) -> String;
 }
 
-// Note: the names of the structs are not important when calling the smart contract, but the function names are
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct WhitelistSale {
-    pub whitelist: LookupMap<AccountId, WhitelistInfo>,
-    pub whitelist_accounts: LookupSet<AccountId>,
-    pub pool_amount: Balance, 
-    pub conversion_rate: u64,
-    pub max_deposit: Balance,
-    pub tge_unlock: u64,
-    pub vesting: u64,
-    pub cliff: u64,
-    pub total_bought: Balance,
-    pub unlock_deposit: bool,
-    pub tge_time: Timestamp,
-}
-
-impl Default for WhitelistSale {
-  fn default() -> Self {
-    Self {
-        tge_unlock: 20, // %
-        cliff: 3, // month
-        vesting: 20, //% monthly
-        max_deposit: 10*YOCTO, // 10 NEAR
-        conversion_rate: 2, // 1N = 5000token 
-        pool_amount: 500_000_000_000_000, // 5M token, 8 decimals number 
-        total_bought: 0,
-        whitelist: LookupMap::new(b"l".to_vec()),
-        whitelist_accounts: LookupSet::new(b"w".to_vec()),
-        unlock_deposit: false,
-        tge_time: TGE_IN_NANO,
-    }
-  }
+#[derive(BorshSerialize, BorshStorageKey)]
+enum StorageKey {
+    // FungibleToken,
+    // Metadata,
+    WhitelistInfo,
+    WhitelistAccount
 }
 
 #[near_bindgen]
 impl WhitelistSale {
-    // get unlock deposit status 
-    pub fn get_max_deposit(&self) -> Balance{
-        self.max_deposit
+    #[init]
+    pub fn new(owner_id: AccountId, metadata: WhitelistSaleMetadata) -> Self {
+        assert!(!env::state_exists(), "Already initialized");
+        Self {
+            owner_id,
+            metadata: metadata,
+            whitelist: LookupMap::new(StorageKey::WhitelistInfo),
+            whitelist_accounts: LookupSet::new(StorageKey::WhitelistAccount),
+            unlock_deposit: false,
+            total_bought: 0,
+        }
     }
     // get unlock deposit status 
-    pub fn is_unlock_deposit(&self) -> bool{
-        self.unlock_deposit
+    pub fn get_metadata(&self) -> WhitelistSaleMetadata{
+        self.metadata.clone()
     }
-    // get tge time
-    pub fn get_tge_time(&self) -> Timestamp {
-        self.tge_time
-    }
-    // get pool_amount
-    pub fn get_pool_amount(&self) -> Balance {
-        self.pool_amount
-    }
-    
-    // get total bought
-    pub fn get_total_bought(&self) -> Balance {
-        self.total_bought
-    }
+
     // Add account to whitelist 
     pub fn add_whitelist(&mut self, accounts: Vec<AccountId>){
         for account in accounts.iter() {
@@ -137,6 +116,9 @@ impl WhitelistSale {
         );
         self.whitelist.contains_key(&account_id)
     }
+    pub fn get_extra_meta(&self) -> (bool, u128) {
+        (self.unlock_deposit, self.total_bought)
+    }
     // unlock deposit into the contract
     pub fn unlock_deposit_now(&mut self) {
         assert!(!self.unlock_deposit, "Already Unlock");
@@ -146,16 +128,16 @@ impl WhitelistSale {
     #[payable]
     pub fn deposit(&mut self){
         assert!(
-            self.is_whitelisted(env::signer_account_id()),
+            self.is_whitelisted(env::predecessor_account_id()),
             "Your account is not whitelisted"
         );
         assert!(
-            !self.is_deposited(env::signer_account_id()),
+            !self.is_deposited(env::predecessor_account_id()),
             "You can deposit only one time."
         );
         assert!(
-            env::attached_deposit() <= self.max_deposit ,
-            "Max deposit is {}", self.max_deposit
+            env::attached_deposit() <= self.metadata.max_deposit ,
+            "Max deposit is {}", self.metadata.max_deposit
         );
         assert! (
             self.unlock_deposit,
@@ -163,12 +145,13 @@ impl WhitelistSale {
         );
         let amount = env::attached_deposit();
         let _total_deposit = amount;
-        let _total_claimable = (amount * 10000/YOCTO) * TOKEN_DECIMAL / (self.conversion_rate as Balance) ; // 1NEAR = 5000 Token
-        self.total_bought += _total_claimable;
+        let _total_claimable = (amount * 10000/YOCTO) * TOKEN_DECIMAL / (self.metadata.conversion_rate as Balance) ; // 1NEAR = 5000 Token
+        
         assert!(
-            self.total_bought < self.pool_amount,
+            self.total_bought + _total_claimable< self.metadata.pool_amount,
             "Pool is full"
         );
+        self.total_bought += _total_claimable;
         let wl_info = WhitelistInfo{total_deposit: _total_deposit, total_claimable: _total_claimable, claimed: 0};
 
         self.whitelist.insert(&env::signer_account_id(), &wl_info);
@@ -184,13 +167,13 @@ impl WhitelistSale {
             "You didn't deposit yet."
         );
         let wl_info = self.whitelist.get(&account_id).unwrap();
-        let delta = env::block_timestamp() - self.tge_time;
+        let delta = env::block_timestamp() - self.metadata.tge_time;
         assert! (delta > 0, 
                 "Not claim time.");
         let month = delta/(NANOSECONDS_IN_DAY*30);
-        let mut claimable = wl_info.total_claimable*(self.tge_unlock as u128)/100;
-        if month > self.cliff {
-            claimable += wl_info.total_claimable*(((month - self.cliff) * self.vesting) as u128)/100;
+        let mut claimable = wl_info.total_claimable*(self.metadata.tge_unlock as u128)/100;
+        if month > self.metadata.cliff.into() {
+            claimable += wl_info.total_claimable*(((month - self.metadata.cliff) * self.metadata.vesting) as u128)/100;
         }
         claimable -= wl_info.claimed;
         claimable
@@ -207,170 +190,15 @@ impl WhitelistSale {
     }
 
 }
-
-/*
- * The rest of this file holds the inline tests for the code above
- * Learn more about Rust tests: https://doc.rust-lang.org/book/ch11-01-writing-tests.html
- *
- * To run from contract directory:
- * cargo test -- --nocapture
- *
- * From project root, to run in combination with frontend tests:
- * yarn test
- *
- */
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use near_sdk::MockedBlockchain;
-    use near_sdk::{testing_env, VMContext};
-
-    pub struct VMContextBuilder {
-        context: VMContext,
-    }
-
-    impl VMContextBuilder {
-        pub fn new() -> Self {
-            Self {
-                context: VMContext {
-                    current_account_id: "".to_string(),
-                    signer_account_id: "".to_string(),
-                    signer_account_pk: vec![0, 1, 2],
-                    predecessor_account_id: "".to_string(),
-                    input: vec![],
-                    block_index: 0,
-                    epoch_height: 0,
-                    block_timestamp: 0,
-                
-                    account_balance: 0,
-                    account_locked_balance: 0,
-                    storage_usage: 10u64.pow(6),
-                    attached_deposit: 0,
-                    prepaid_gas: 10u64.pow(18),
-                    random_seed: vec![0, 1, 2],
-                    is_view: false,
-                    
-                    output_data_receivers: vec![],
-                },
-            }
-        }
-
-        pub fn current_account_id(mut self, account_id: AccountId) -> Self {
-            self.context.current_account_id = account_id;
-            self
-        }
-
-        #[allow(dead_code)]
-        pub fn signer_account_id(mut self, account_id: AccountId) -> Self {
-            self.context.signer_account_id = account_id;
-            self
-        }
-
-        pub fn predecessor_account_id(mut self, account_id: AccountId) -> Self {
-            self.context.predecessor_account_id = account_id;
-            self
-        }
-
-
-        pub fn attached_deposit(mut self, amount: Balance) -> Self {
-            self.context.attached_deposit = amount;
-            self
-        }
-
-        pub fn account_balance(mut self, amount: Balance) -> Self {
-            self.context.account_balance = amount;
-            self
-        }
-
-        #[allow(dead_code)]
-        pub fn account_locked_balance(mut self, amount: Balance) -> Self {
-            self.context.account_locked_balance = amount;
-            self
-        }
-
-        pub fn finish(self) -> VMContext {
-            self.context
-        }
-    }
-
-    #[test]
-    fn add_whitelist() {
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .finish());
-        let mut contract = WhitelistSale::default();
-        let accs = vec!["thohd.testnet".to_string(), "alice.thohd.testnet".to_string()];
-        contract.add_whitelist(accs);
-        let accs1 = vec!["thohd.testnet".to_string(), "alice.thohd.testnet".to_string()];
-        for acc in accs1.iter() {
-            assert!(
-                contract.whitelist_accounts.contains(&acc)
-            );
-        }
-    }
-    #[test]
-    #[should_panic]
-    fn test_is_whitelist() {
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .finish());
-        let mut contract = WhitelistSale::default();
-        contract.add_whitelist(vec!["thohd.testnet".to_string()]);
-        assert!(
-            contract.is_whitelisted("tim.thohd.testnet".to_string())
-        );
-    }
-    #[test]
-    #[should_panic]
-    fn test_deposit() {
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .finish());
-        let mut contract = WhitelistSale::default();
-        contract.add_whitelist(vec![env::signer_account_id()]);    // remove panic
-        let deposit = 10*YOCTO; // panic 11 NEAR 
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .attached_deposit(deposit)
-        .finish());
-        contract.deposit();
-        assert_eq!(env::account_balance(), deposit, "Money gone");
-        let wl = contract.whitelist.get(&env::signer_account_id()).unwrap();
-        assert_eq!(wl.total_deposit, env::account_balance(), "deposit gone");
-        assert_eq!(wl.total_claimable, 5_000_000_000_001, "wrong formula gone");
-    }
-    #[test]
-    #[should_panic]
-    fn test_deposit_again() {
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .finish());
-        let mut contract = WhitelistSale::default();
-        contract.add_whitelist(vec![env::signer_account_id()]);    // remove panic
-        let deposit = 10*YOCTO; // panic 11 NEAR 
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .attached_deposit(deposit)
-        .finish());
-        contract.deposit();
-        assert_eq!(env::account_balance(), deposit, "Money gone");
-        let wl = contract.whitelist.get(&env::signer_account_id()).unwrap();
-        assert_eq!(wl.total_deposit, env::account_balance(), "deposit gone");
-        assert_eq!(wl.total_claimable, 5_000_000_000_000, "wrong formula gone");
-
-        testing_env!(VMContextBuilder::new()
-        .current_account_id("alice_near".to_string())
-        .signer_account_id("bob_near".to_string())
-        .account_balance(deposit)
-        .attached_deposit(deposit)
-        .finish());
-        contract.deposit();
-
-    }
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(crate = "near_sdk::serde")]
+pub struct WhitelistSaleMetadata {
+    pub fttoken_contract: AccountId,   // required, fttoken contract account id"
+    pub pool_amount: Balance,   // required, pool amount in whitelist sale round
+    pub tge_time: Timestamp,
+    pub conversion_rate: f64, // price in near 
+    pub tge_unlock: u64,
+    pub cliff: u64, 
+    pub vesting: u64,
+    pub max_deposit: Balance,
 }
