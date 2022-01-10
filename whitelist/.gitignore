@@ -3,7 +3,7 @@
 # dependencies
 /whitelistfactory/target
 /whitelistfactory/neardev
-/contract/
+/contract/target
 /node_modules
 /src/node_modules
 /src/.next
