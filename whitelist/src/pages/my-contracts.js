@@ -8,6 +8,8 @@ import ModalHeader from "@material-tailwind/react/ModalHeader";
 import ModalBody from "@material-tailwind/react/ModalBody";
 import ModalFooter from "@material-tailwind/react/ModalFooter";
 import dayjs from "dayjs";
+import { useForm } from "react-hook-form";
+
 const decimal = 8
 export default function MyContracts() {
   const { isAuth, accountId, triedEager, login, connectContract } = useAppContext();
@@ -19,6 +21,14 @@ export default function MyContracts() {
   const [unlockDeposit, setUnlockDeposit] = useState(false);
   const [totalBought, setTotalBought] = useState(0);
   const [saleTitle, setSaleTitle] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  const onSubmit = async (data) => {
+  }
   const getContracts = useCallback(async () => {
     if (!isAuth || !accountId) {
       return;
@@ -51,6 +61,10 @@ const handleViewContract = async (contract) => {
 
 const handleUnlock = async () => {
   await currentContract.unlock_deposit_now({})
+  setUnlockDeposit(true)
+}
+const handleAddWL = async () => {
+  await currentContract.add_whitelist({})
   setUnlockDeposit(true)
 }
 
@@ -155,14 +169,30 @@ const handleUnlock = async () => {
               </table>
             </ModalBody>
             <ModalFooter>
-          {!unlockDeposit ? (
-          <Button color="blue" buttonType="link" onClick={(e) => handleUnlock()}>
-            Unlock Deposit
-          </Button>
-          ) : (<span/>)}
-          <Button color="red" buttonType="link" onClick={(e) => setShowModal(false)}>
-            Close
-          </Button>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            {!unlockDeposit ? (
+            <Button color="blue" buttonType="link" onClick={(e) => handleUnlock()}>
+              Unlock Deposit
+            </Button>
+            ) : (<span/>)}
+            <div className="mb-6">
+              <label htmlFor="wlaccount" className="block mb-2 text-base text-white text-left">
+                Add Whitelist Account
+              </label>
+              <input
+                type="number"
+                required
+                className="w-full px-3 py-2 placeholder-gray-300 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100 focus:border-indigo-300"
+                {...register("wlaccount")}
+              />
+            </div>
+            <Button color="red" buttonType="link" onClick={(e) => setShowModal(false)}>
+              Add Whitelist Account
+            </Button>      
+            <Button color="red" buttonType="link" onClick={(e) => setShowModal(false)}>
+              Close
+            </Button>
+          </form>
         </ModalFooter>
           </Modal>
           </center>

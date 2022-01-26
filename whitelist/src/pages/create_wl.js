@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { useAppContext } from "../context/app.context";
 import { formatDepositAmount, formatNearAmount } from "../utils";
 import NearIcon from "../components/NearIcon";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import Button from "@material-tailwind/react/Button";
 import { toast } from "react-toastify";
 

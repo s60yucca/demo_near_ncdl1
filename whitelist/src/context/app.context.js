@@ -62,7 +62,7 @@ const AppProvider = ({ children }) => {
         "get_claimable_amount",
         "get_extra_meta"
       ],
-      changeMethods: ["unlock_deposit_now", "deposit","claim_token"],
+      changeMethods: ["unlock_deposit_now", "deposit","claim_token", "add_whitelist"],
     });
 
     // setTicketContract(contract);
