@@ -16,10 +16,6 @@ export default function NavBar() {
       href: "/",
     },
     {
-      title: "Whitelist Sale",
-      href: "/wl-sale",
-    },
-    {
       title: "My Contracts",
       href: "/my-contracts",
     },

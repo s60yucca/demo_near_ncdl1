@@ -9,9 +9,8 @@ import { toast } from "react-toastify";
 
 const GAS_DEFAULT = 300000000000000
 
-export default function BuyTicket({ ticket, show, company }) {
-  const { isAuth, connectContract, login, mainContract } = useAppContext();
-  // const contractAddress = process.env.CONTRACT_NAME;
+export default function CreateWL() {
+  const { isAuth, mainContract } = useAppContext();
   const {
     register,
     handleSubmit,
@@ -81,7 +80,7 @@ export default function BuyTicket({ ticket, show, company }) {
         </label>
         <input
           type="text"
-          placeholder="MTP Entertaiment"
+          placeholder="Whitelist Sale Title"
           required
           className="w-full px-3 py-2 placeholder-gray-300 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100 focus:border-indigo-300"
           {...register("title")}
@@ -139,7 +138,7 @@ export default function BuyTicket({ ticket, show, company }) {
         </label>
         <input
           type="text"
-          placeholder="MTP Entertaiment"
+          placeholder="Whitelist Sale Contract Prefix"
           required
           className="w-full px-3 py-2 placeholder-gray-300 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100 focus:border-indigo-300"
           {...register("prefix")}

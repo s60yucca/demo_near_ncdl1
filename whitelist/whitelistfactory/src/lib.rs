@@ -32,7 +32,7 @@ impl Contract {
             "Please deposit exactly contract creation fee"
         );
         let subaccount_id = format!("{}.{}", prefix, env::current_account_id());
-        log!("{}", format!("Creating new ticket contract at account {}", subaccount_id));
+        log!("{}", format!("Creating new whitelist contract at account {}", subaccount_id));
         Promise::new(subaccount_id.clone())
             .create_account()
             .transfer(INITIAL_BALANCE)
